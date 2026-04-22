@@ -58,7 +58,12 @@ export function parseAwemeList(creator: Subscription, payload: Record<string, un
         publishTime: publishTimestampToIso(item.create_time)
       } satisfies VideoRecord;
     })
-    .filter((video) => video.videoId);
+    .filter((video) => video.videoId)
+    .sort((left, right) => {
+      const l = left.publishTime ? Date.parse(left.publishTime) : 0;
+      const r = right.publishTime ? Date.parse(right.publishTime) : 0;
+      return r - l;
+    });
 }
 
 export class DouyinClient {

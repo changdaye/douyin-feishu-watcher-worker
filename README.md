@@ -104,3 +104,18 @@ Worker 启动时会自动把这些片段按顺序拼回完整 Cookie。
 - `queue consumer` 负责逐个博主抓取、去重和推送
 
 这样后续博主数量增加时更容易横向扩展。
+
+## 基线测试推送
+
+首次建基线时，历史视频默认只入库不推送。
+如果你想马上在飞书看到效果，可以手动发送每个博主一条 pending 视频：
+
+```bash
+curl -X POST "https://douyin-feishu-watcher-worker.wanggejiancai822.workers.dev/admin/send-pending-samples?limit=5"
+```
+
+默认会从 pending 视频里按博主各取最新 1 条，并把这些视频标记为已发送。
+
+## 最新视频判定
+
+Worker 版当前按 `publish_time` 倒序处理视频列表，不受置顶视频返回顺序影响。

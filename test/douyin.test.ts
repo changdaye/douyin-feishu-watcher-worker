@@ -39,3 +39,18 @@ describe("parseAwemeList", () => {
     ]);
   });
 });
+
+
+describe("pinned ordering", () => {
+  it("sorts by publish time instead of pinned order", () => {
+    const creator = { id: "c1", name: "Alice", profileUrl: "https://www.douyin.com/user/u1", enabled: true };
+    const videos = parseAwemeList(creator, {
+      aweme_list: [
+        { aweme_id: "old-top", desc: "置顶旧视频", create_time: 1700000000, is_top: 1 },
+        { aweme_id: "newest-normal", desc: "真正最新视频", create_time: 1800000000, is_top: 0 },
+        { aweme_id: "mid-normal", desc: "中间视频", create_time: 1750000000, is_top: 0 }
+      ]
+    });
+    expect(videos.map((video) => video.videoId)).toEqual(["newest-normal", "mid-normal", "old-top"]);
+  });
+});

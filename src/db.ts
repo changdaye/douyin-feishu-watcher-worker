@@ -76,3 +76,36 @@ export async function setRuntimeState(db: D1Database, state: RuntimeState, now =
     .bind(JSON.stringify(state), nowIso(now))
     .run();
 }
+
+
+export async function listPendingVideos(db: D1Database, limit: number): Promise<VideoRecord[]> {
+  const rows = await db.prepare(`
+    WITH ranked AS (
+      SELECT
+        video_id, creator_id, creator_name, title, video_url, cover_url, publish_time,
+        ROW_NUMBER() OVER (PARTITION BY creator_id ORDER BY publish_time DESC, first_seen_at DESC) AS rn
+      FROM videos
+      WHERE notify_status = 'pending'
+    )
+    SELECT video_id, creator_id, creator_name, title, video_url, cover_url, publish_time
+    FROM ranked
+    WHERE rn = 1
+    ORDER BY publish_time DESC, video_id DESC
+    LIMIT ?
+  `).bind(limit).all<Record<string, unknown>>();
+  return rows.results.map((row) => ({
+    videoId: String(row.video_id),
+    creatorId: String(row.creator_id),
+    creatorName: String(row.creator_name),
+    title: String(row.title),
+    videoUrl: String(row.video_url),
+    coverUrl: row.cover_url ? String(row.cover_url) : undefined,
+    publishTime: row.publish_time ? String(row.publish_time) : undefined
+  }));
+}
+
+export async function markVideoNotified(db: D1Database, videoId: string, now = new Date()): Promise<void> {
+  await db.prepare("UPDATE videos SET notify_status = 'sent', notified_at = ? WHERE video_id = ?")
+    .bind(nowIso(now), videoId)
+    .run();
+}

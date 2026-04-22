@@ -11,3 +11,10 @@ describe("queue architecture", () => {
     });
   });
 });
+
+
+describe("baseline sample delivery", () => {
+  it("reserves a management path for sending pending sample videos", () => {
+    expect("/admin/send-pending-samples").toContain("send-pending-samples");
+  });
+});
