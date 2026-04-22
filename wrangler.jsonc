@@ -15,7 +15,7 @@
     {
       "binding": "WATCHER_DB",
       "database_name": "douyin-feishu-watcher",
-      "database_id": "replace-with-d1-database-id",
+      "database_id": "22f1df86-2958-4fb9-a60b-443f203b8faa",
       "migrations_dir": "migrations"
     }
   ],
@@ -26,5 +26,22 @@
     "HEARTBEAT_ENABLED": "true",
     "HEARTBEAT_INTERVAL_HOURS": "6",
     "STARTUP_NOTIFICATION_ENABLED": "true"
+  }
+,
+  "queues": {
+    "producers": [
+      {
+        "binding": "WATCHER_QUEUE",
+        "queue": "douyin-feishu-watcher-queue"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "douyin-feishu-watcher-queue",
+        "max_batch_size": 10,
+        "max_batch_timeout": 10,
+        "max_retries": 3
+      }
+    ]
   }
 }

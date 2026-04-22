@@ -20,14 +20,16 @@ Cloudflare Worker 版抖音博主更新监控骨架项目。
 
 ## 架构
 
-- `scheduled`: 按 cron 触发巡检
+- `scheduled`: 按 cron 触发并把订阅任务入队
+- `queue consumer`: 逐个博主抓取抖音 API、去重、发飞书
 - `D1`: 保存 subscriptions / videos / creator_failures / app_state
 - `fetch`: 提供健康检查与基础管理接口骨架
 - `Feishu webhook`: 发送新视频提醒、启动通知、失败告警
 
 ## 运行所需 Secrets
 
-- `DOUYIN_COOKIE`
+- `DOUYIN_COOKIE`（短 cookie 可直接用）
+- `DOUYIN_COOKIE_PART_1` / `DOUYIN_COOKIE_PART_2` / `DOUYIN_COOKIE_PART_3`（超长 cookie 推荐拆分）
 - `FEISHU_WEBHOOK_URL`
 - `FEISHU_BOT_SECRET`（可选）
 
@@ -40,10 +42,11 @@ Cloudflare Worker 版抖音博主更新监控骨架项目。
 - `HEARTBEAT_INTERVAL_HOURS`
 - `STARTUP_NOTIFICATION_ENABLED`
 
-## D1 初始化
+## D1 / Queue 初始化
 
 ```bash
 npx wrangler d1 create douyin-feishu-watcher
+npx wrangler queues create douyin-feishu-watcher-queue
 npx wrangler d1 migrations apply douyin-feishu-watcher --local
 npx wrangler d1 migrations apply douyin-feishu-watcher --remote
 ```
@@ -80,3 +83,24 @@ curl http://127.0.0.1:8787/health
 - 抖音 Web API 在 Cloudflare 出口环境下可能比普通云服务器更容易触发风控
 - Cookie 有时效性，失效后需要重新配置 secret
 - 第一版还没有 Browser Run 兜底抓取逻辑
+
+## 超长 Douyin Cookie 说明
+
+Cloudflare 单个 secret 有大小限制。
+如果你的 `DOUYIN_COOKIE` 太长，推荐拆成多段：
+
+- `DOUYIN_COOKIE_PART_1`
+- `DOUYIN_COOKIE_PART_2`
+- `DOUYIN_COOKIE_PART_3`
+
+Worker 启动时会自动把这些片段按顺序拼回完整 Cookie。
+
+## Queue 设计
+
+当前 Worker 版按“每个博主一条消息”入队：
+
+- `scheduled` 不直接抓抖音
+- 它只负责读取订阅列表并发送 queue 消息
+- `queue consumer` 负责逐个博主抓取、去重和推送
+
+这样后续博主数量增加时更容易横向扩展。

@@ -2,7 +2,7 @@ import { parseConfig } from "./config";
 import { getRuntimeState, hasAnyVideosForCreator, hasVideo, listEnabledSubscriptions, recordFailure, resetFailures, saveVideo, setRuntimeState } from "./db";
 import { sendAlert, sendVideo } from "./services/feishu";
 import { DouyinClient } from "./services/douyin";
-import type { Env, Subscription } from "./types";
+import type { DouyinPollMessage, Env, Subscription } from "./types";
 
 function nowIso(now = new Date()): string {
   return now.toISOString();
@@ -47,7 +47,7 @@ async function pollCreator(env: Env, creator: Subscription): Promise<{ creator: 
   }
 }
 
-async function runScheduled(env: Env): Promise<Record<string, unknown>> {
+async function maybeSendLifecycleMessages(env: Env): Promise<void> {
   const config = parseConfig(env);
   const runtime = await getRuntimeState(env.WATCHER_DB);
   if (config.startupNotificationEnabled && !runtime.lastStartupAt && config.feishuWebhookUrl) {
@@ -59,13 +59,21 @@ async function runScheduled(env: Env): Promise<Record<string, unknown>> {
     runtime.lastHeartbeatAt = nowIso();
   }
   await setRuntimeState(env.WATCHER_DB, runtime);
+}
 
+async function enqueueSubscriptions(env: Env): Promise<Record<string, unknown>> {
+  await maybeSendLifecycleMessages(env);
   const subscriptions = await listEnabledSubscriptions(env.WATCHER_DB);
-  const results = [];
   for (const creator of subscriptions) {
-    results.push(await pollCreator(env, creator));
+    const message: DouyinPollMessage = {
+      subscriptionId: creator.id,
+      name: creator.name,
+      profileUrl: creator.profileUrl,
+      scheduledAt: nowIso()
+    };
+    await env.WATCHER_QUEUE.send(message);
   }
-  return { ok: true, subscriptions: subscriptions.length, results };
+  return { ok: true, queued: subscriptions.length };
 }
 
 export default {
@@ -75,12 +83,28 @@ export default {
       return Response.json({ ok: true, runtime: await getRuntimeState(env.WATCHER_DB) });
     }
     if (request.method === "POST" && url.pathname === "/admin/run-once") {
-      return Response.json(await runScheduled(env));
+      return Response.json(await enqueueSubscriptions(env));
     }
     return Response.json({ ok: false, error: "not found" }, { status: 404 });
   },
 
   async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
-    await runScheduled(env);
+    await enqueueSubscriptions(env);
+  },
+
+  async queue(batch: MessageBatch<DouyinPollMessage>, env: Env, _ctx: ExecutionContext): Promise<void> {
+    for (const message of batch.messages) {
+      try {
+        await pollCreator(env, {
+          id: message.body.subscriptionId,
+          name: message.body.name,
+          profileUrl: message.body.profileUrl,
+          enabled: true
+        });
+        message.ack();
+      } catch {
+        message.retry();
+      }
+    }
   }
 };
