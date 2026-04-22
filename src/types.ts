@@ -14,6 +14,7 @@ export interface Env {
   DOUYIN_COOKIE_PART_3?: string;
   FEISHU_WEBHOOK_URL?: string;
   FEISHU_BOT_SECRET?: string;
+  MANUAL_TRIGGER_TOKEN?: string;
   POLL_INTERVAL_MINUTES?: string;
   REQUEST_TIMEOUT_MS?: string;
   FAILURE_ALERT_THRESHOLD?: string;
@@ -32,6 +33,7 @@ export interface AppConfig {
   heartbeatEnabled: boolean;
   heartbeatIntervalHours: number;
   startupNotificationEnabled: boolean;
+  manualTriggerToken: string;
 }
 
 export interface Subscription {

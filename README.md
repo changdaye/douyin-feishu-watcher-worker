@@ -32,6 +32,7 @@ Cloudflare Worker 版抖音博主更新监控骨架项目。
 - `DOUYIN_COOKIE_PART_1` / `DOUYIN_COOKIE_PART_2` / `DOUYIN_COOKIE_PART_3`（超长 cookie 推荐拆分）
 - `FEISHU_WEBHOOK_URL`
 - `FEISHU_BOT_SECRET`（可选）
+- `MANUAL_TRIGGER_TOKEN`（推荐，用于保护 admin 接口）
 
 ## 运行所需 Variables
 
@@ -119,3 +120,18 @@ curl -X POST "https://douyin-feishu-watcher-worker.wanggejiancai822.workers.dev/
 ## 最新视频判定
 
 Worker 版当前按 `publish_time` 倒序处理视频列表，不受置顶视频返回顺序影响。
+
+## Admin 接口鉴权
+
+以下管理接口现在要求 Bearer Token：
+
+- `POST /admin/run-once`
+- `POST /admin/send-pending-samples`
+
+调用示例：
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer YOUR_MANUAL_TRIGGER_TOKEN" \
+  "https://douyin-feishu-watcher-worker.wanggejiancai822.workers.dev/admin/send-pending-samples?limit=5"
+```

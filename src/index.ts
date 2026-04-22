@@ -1,5 +1,6 @@
 import { parseConfig } from "./config";
 import { getRuntimeState, hasAnyVideosForCreator, hasVideo, listEnabledSubscriptions, listPendingVideos, markVideoNotified, recordFailure, resetFailures, saveVideo, setRuntimeState } from "./db";
+import { authorizeAdminRequest } from "./lib/admin";
 import { sendAlert, sendVideo } from "./services/feishu";
 import { DouyinClient } from "./services/douyin";
 import type { DouyinPollMessage, Env, Subscription } from "./types";
@@ -61,7 +62,6 @@ async function maybeSendLifecycleMessages(env: Env): Promise<void> {
   await setRuntimeState(env.WATCHER_DB, runtime);
 }
 
-
 async function sendPendingSamples(env: Env, limit = 5): Promise<Record<string, unknown>> {
   const config = parseConfig(env);
   const videos = await listPendingVideos(env.WATCHER_DB, limit);
@@ -87,20 +87,28 @@ async function enqueueSubscriptions(env: Env): Promise<Record<string, unknown>> 
   return { ok: true, queued: subscriptions.length };
 }
 
+function jsonError(status: number, error: string): Response {
+  return Response.json({ ok: false, error }, { status });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/health")) {
       return Response.json({ ok: true, runtime: await getRuntimeState(env.WATCHER_DB) });
     }
-    if (request.method === "POST" && url.pathname === "/admin/run-once") {
-      return Response.json(await enqueueSubscriptions(env));
-    }
-    if (request.method === "POST" && url.pathname === "/admin/send-pending-samples") {
+    if (request.method === "POST" && (url.pathname === "/admin/run-once" || url.pathname === "/admin/send-pending-samples")) {
+      const auth = authorizeAdminRequest(request, parseConfig(env).manualTriggerToken);
+      if (!auth.ok) {
+        return jsonError(auth.status, auth.error ?? "unauthorized");
+      }
+      if (url.pathname === "/admin/run-once") {
+        return Response.json(await enqueueSubscriptions(env));
+      }
       const limit = Number(url.searchParams.get("limit") ?? "5") || 5;
       return Response.json(await sendPendingSamples(env, Math.max(1, Math.min(limit, 20))));
     }
-    return Response.json({ ok: false, error: "not found" }, { status: 404 });
+    return jsonError(404, "not found");
   },
 
   async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {

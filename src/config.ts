@@ -19,6 +19,7 @@ export function parseConfig(env: Env): AppConfig {
     failureAlertThreshold: toInt(env.FAILURE_ALERT_THRESHOLD, 3, 1),
     heartbeatEnabled: toBoolean(env.HEARTBEAT_ENABLED, true),
     heartbeatIntervalHours: toInt(env.HEARTBEAT_INTERVAL_HOURS, 6, 1),
-    startupNotificationEnabled: toBoolean(env.STARTUP_NOTIFICATION_ENABLED, true)
+    startupNotificationEnabled: toBoolean(env.STARTUP_NOTIFICATION_ENABLED, true),
+    manualTriggerToken: env.MANUAL_TRIGGER_TOKEN?.trim() ?? ""
   };
 }
