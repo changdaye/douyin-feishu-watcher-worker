@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "douyin-feishu-watcher-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-22",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true
+  },
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "WATCHER_DB",
+      "database_name": "douyin-feishu-watcher",
+      "database_id": "replace-with-d1-database-id",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "POLL_INTERVAL_MINUTES": "30",
+    "REQUEST_TIMEOUT_MS": "15000",
+    "FAILURE_ALERT_THRESHOLD": "3",
+    "HEARTBEAT_ENABLED": "true",
+    "HEARTBEAT_INTERVAL_HOURS": "6",
+    "STARTUP_NOTIFICATION_ENABLED": "true"
+  }
+}
