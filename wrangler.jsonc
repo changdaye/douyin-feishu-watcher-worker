@@ -3,6 +3,7 @@
   "name": "douyin-feishu-watcher-worker",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-22",
+  "account_id": "d66336592b3f62650da1e5fa60e4a28c",
   "workers_dev": true,
   "preview_urls": false,
   "observability": {
@@ -15,7 +16,7 @@
     {
       "binding": "WATCHER_DB",
       "database_name": "douyin-feishu-watcher",
-      "database_id": "22f1df86-2958-4fb9-a60b-443f203b8faa",
+      "database_id": "1db866a5-7596-4eca-94e2-74f84111c82b",
       "migrations_dir": "migrations"
     }
   ],
